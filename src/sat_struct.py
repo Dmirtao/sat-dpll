@@ -6,7 +6,7 @@ TRUE = 1
 FALSE = 2
 
 
-def create_assignment_array(num_vars: int) -> bytearray:
+def init_assignment_array(num_vars: int) -> bytearray:
     """Creates an array to hold the variable assignments, initialized to UNASSIGNED.
     This array will be indexed by variable number (0-based index for variable 1, etc.)
     and will hold the assignment state (UNASSIGNED, TRUE, FALSE) for each variable.
@@ -26,8 +26,9 @@ def create_assignment_array(num_vars: int) -> bytearray:
     """
     return bytearray([UNASSIGNED] * num_vars)
 
+# def set_assignment_arr(assignment:bytearray, ) -> bytearray:
 
-def get_assignment_bitmasks(assignment: bytearray) -> tuple[int, int]:
+def get_assignment_bitmasks(assignment: bytearray) -> tuple[int, int, int]:
     """Returns a tuple of int
     This operation can be expensive so only call when really necessary.
 
@@ -41,22 +42,21 @@ def get_assignment_bitmasks(assignment: bytearray) -> tuple[int, int]:
     tuple[int,int]
         _description_
     """
+    true_mask = 0
+    false_mask = 0
 
-    true_mask_list: list[int] = [
-        lit & TRUE for lit in assignment
-    ]  # Bits of variables assigned TRUE
-    false_mask_list: list[int] = [
-        lit & FALSE for lit in assignment
-    ]  # Bits of variables assigned FALSE
-    true_mask: int = int("".join(map(str, true_mask_list)))
-    false_mask: int = int("".join(map(str, false_mask_list)))
-    return (true_mask, false_mask)
-
+    for i, val in enumerate(assignment):
+        if val == TRUE:
+            true_mask |= (1 << i)
+        elif val == FALSE:
+            false_mask |= (1 << i)
+    full_mask = (1 << len(assignment)) - 1
+    return (true_mask, false_mask, full_mask)
 
 def get_clause_bitmasks(clause: tuple[int]) -> tuple[int, int]:
     """In these bitmasks, for the positive mask a bit is 1 if the variable appears
     as a positive literal, otherwise it's zero. For the negative mask a bit is 1 if the
-    variable appears as a negative literal, otherwise it's zero.
+    variable appears as a negative literal, otherwise it's zero. 
 
     Parameters
     ----------

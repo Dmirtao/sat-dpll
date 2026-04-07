@@ -1,7 +1,7 @@
 from pathlib import Path
 from cnf_io import parse_dimacs_cnf
 from sat_struct import (
-    create_assignment_array,
+    init_assignment_array,
     get_assignment_bitmasks,
     get_clause_bitmasks,
 )
@@ -36,6 +36,7 @@ def unit_propagate(unit_clause: tuple, clauses: list[tuple]) -> list[tuple]:
 
     """
     # TODO: Perform the unit clause propagation
+    # Set the unit clauses single unassigned literal to true
     return clauses
 
 
@@ -56,16 +57,16 @@ def get_unit_clauses(clauses: list[tuple], assignments: bytearray) -> list[tuple
         List of unit clauses.
     """
     unit_clauses: list[tuple] = []
-    true_mask, false_mask = get_assignment_bitmasks(assignments)
+    true_mask, false_mask, full_mask = get_assignment_bitmasks(assignments)
     for clause in clauses:
         clause_p_mask, clause_n_mask = get_clause_bitmasks(clause)
-        if is_unit(clause_p_mask, clause_n_mask, true_mask, false_mask):
+        if is_unit(clause_p_mask, clause_n_mask, true_mask, false_mask, full_mask):
             unit_clauses.append(clause)
     return unit_clauses
 
 
 def is_unit(
-    clause_p_mask: int, clause_n_mask: int, true_mask: int, false_mask: int
+    clause_p_mask: int, clause_n_mask: int, true_mask: int, false_mask: int, full_mask: int 
 ) -> bool:
     """Checks if an input clause is a unit clause.
 
@@ -89,7 +90,9 @@ def is_unit(
     if true_mask & clause_p_mask or false_mask & clause_n_mask:
         return False
     # 2. Get literals that are not yet falsified
-    remaining_lits = (clause_p_mask & ~false_mask) | (clause_n_mask & ~true_mask)
+    # BUG: If you have one literal and no assigned false or true in the mask what then.
+    # FIX: Use the full_mask of all ones to expand the mask to avoid Python bitmask weirdness
+    remaining_lits = (clause_p_mask & (false_mask ^ full_mask)) | (clause_n_mask & (true_mask ^ full_mask))
     # 3. Check if exactly one bit is set == exactly one literal is not yet falsified
     # (n > 0 and n & (n - 1) == 0 is the classic bit-trick for power of 2)
     return remaining_lits > 0 and (remaining_lits & (remaining_lits - 1)) == 0
@@ -110,6 +113,9 @@ def dpll(clauses: list[tuple], assignments: bytearray) -> list[tuple]:
     list[tuple]
         _description_
     """
+    # DEBUG: Make clause[0] a unit clause. Need negative indices for endianness
+    assignments[-9] = 2
+    assignments[-12] = 2
     unit_clauses = get_unit_clauses(clauses, assignments)
     #  Unit clause propagation
     for unit_clause in unit_clauses:
@@ -138,8 +144,7 @@ if __name__ == "__main__":
     clauses, num_vars, num_cls = parse_dimacs_cnf(
         Path("benchmarks\\uf20-91\\uf20-010.cnf")
     )
-    assignments = create_assignment_array(num_vars)
+    assignments = init_assignment_array(num_vars)
     # Retrieve the list of unit clauses in the current clause list
     dpll(clauses, assignments)
-
     print("Done")
