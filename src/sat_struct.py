@@ -1,10 +1,6 @@
 """Data structures"""
 
-# Assignment constants
-UNASSIGNED = 0
-TRUE = 1
-FALSE = 2
-
+from constants import UNASSIGNED, TRUE, FALSE
 
 def init_assignment_array(num_vars: int) -> bytearray:
     """Creates an array to hold the variable assignments, initialized to UNASSIGNED.
@@ -39,7 +35,7 @@ def get_assignment_bitmasks(assignment: bytearray) -> tuple[int, int, int]:
 
     Returns
     -------
-    tuple[int,int]
+    tuple[int,int,int]
         _description_
     """
     true_mask = 0

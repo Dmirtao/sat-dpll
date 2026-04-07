@@ -5,9 +5,9 @@ from sat_struct import (
     get_assignment_bitmasks,
     get_clause_bitmasks,
 )
+from constants import UNASSIGNED, TRUE, FALSE
 
-
-def unit_propagate(unit_clause: tuple, clauses: list[tuple]) -> list[tuple]:
+def unit_propagate(unit_clause: tuple, clauses: list[tuple], assignments: bytearray) -> tuple[list[tuple], bytearray]:
     """This function takes a unit clause and the current list of clauses, and
     returns an updated list of clauses after performing unit propagation based
     on the unit clause.
@@ -35,9 +35,21 @@ def unit_propagate(unit_clause: tuple, clauses: list[tuple]) -> list[tuple]:
         _description_
 
     """
+    # NOTE: This can likely be merged with is_unit as it repeats a few of the same steps.
     # TODO: Perform the unit clause propagation
     # Set the unit clauses single unassigned literal to true
-    return clauses
+    true_mask, false_mask, full_mask = get_assignment_bitmasks(assignments)
+    clause_p_mask, clause_n_mask = get_clause_bitmasks(unit_clause)
+    remaining_lit = (clause_p_mask & (false_mask ^ full_mask)) | (clause_n_mask & (true_mask ^ full_mask))
+    # Check if remaining lit is positive or negative
+    if (remaining_lit & (remaining_lit - 1)) == 0:
+        bit_ndx = remaining_lit.bit_length() - 1
+        
+        val_to_assign = TRUE if (remaining_lit & clause_p_mask) else FALSE
+
+        assignments[bit_ndx] = val_to_assign
+    
+    return clauses, assignments
 
 
 def get_unit_clauses(clauses: list[tuple], assignments: bytearray) -> list[tuple]:
@@ -119,7 +131,7 @@ def dpll(clauses: list[tuple], assignments: bytearray) -> list[tuple]:
     unit_clauses = get_unit_clauses(clauses, assignments)
     #  Unit clause propagation
     for unit_clause in unit_clauses:
-        clauses = unit_propagate(unit_clause, clauses)
+        clauses = unit_propagate(unit_clause, clauses, assignments)
 
     # Pure literal elimination would go here (not implemented yet)
     # while there is a literal l that occurs pure in Φ do
