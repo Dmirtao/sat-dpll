@@ -74,6 +74,94 @@ def get_clause_bitmasks(clause: tuple[int]) -> tuple[int, int]:
             n_mask |= 1 << lit_ndx
     return p_mask, n_mask
 
+class ImplicationGraph:
+    """Tracks the implication graph for CDCL
+
+    Each node in the graph is a variable. Edges represent implications:
+    an edge from variable u to variable v means the assignment of u (via
+    some clause) forced the assignment of v.
+
+    Attributes
+    ----------
+    antecedent : dict[int, tuple | None]
+        Maps variable index (0-based) to the clause that implied it,
+        or None if it was a decision literal.
+    decision_level : dict[int, int]
+        Maps variable index (0-based) to the decision level at which it
+        was assigned.
+    trail : list[int]
+        Ordered list of literals assigned so far (in assignment order)
+        Positive literal = variable assigned TRUE: negative = assigned FALSE
+    level_start : list[int]
+        trail index at which each decision level begins, level_start[d] is
+        the index into trail where decision level d started.
+    current_level : int
+        The current decision level
+    """
+
+    def __init__(self) -> None:
+        self.antecedent: dict[int, tuple | None] = {}
+        self.decision_level: dict[int, int] = {}
+        self.trail: list[int] = []
+        self.level_start: list[int] = [0]
+        self.current_level: int = 0
+
+    def decide(self, lit: int) -> None:
+        """Record a decision literal (no antecedent clause)
+
+        Parameters
+        ----------
+        lit : int
+            The decided literal (positive for TRUE, negative for FALSE)
+        """
+        self.current_level += 1
+        self.level_start.append(len(self.trail))
+        var = abs(lit) - 1
+        self.antecedent[var] = None
+        self.decision_level[var] = self.current_level
+        self.trail.append(lit)
+
+    def imply(self, lit: int, clause: tuple) -> None:
+        """Record an implied literal with its antecedent clause
+
+        Parameters
+        ----------
+        lit : int
+            The implied literal
+        clause : tuple
+            the unit clause
+        """
+        var = abs(lit) - 1
+        self.antecedent[var] = clause
+        self.decision_level[var] = self.current_level
+        self.trail.append(lit)
+
+    def backjump(self, target_level: int, assignments: bytearray) -> None:
+        """Undo all assignments above target_level
+
+        Parameters
+        ----------
+        target_level : int
+            The decision level to jump back to
+        assignments : bytearray
+            The assignment array to update (variables are reset to UNASSIGNED)
+        """
+        # Find trail index of the start of target_level + 1
+        if target_level + 1 < len(self.level_start):
+            rollback_idx = self.level_start[target_level + 1]
+        else:
+            rollback_idx = 0
+
+        # Undo all assignments from rollback_idx onward
+        for lit in self.trail[rollback_idx:]:
+            var = abs(lit) - 1
+            assignments[var] = UNASSIGNED
+            self.antecedent.pop(var, None)
+            self.decision_level.pop(var, None)
+
+        self.trail = self.trail[:rollback_idx]
+        self.level_start = self.level_start[: target_level + 1]
+        self.current_level = target_level
 
 # def is_lit_satisfied(lit, assigns):
 #     var = lit >> 1
