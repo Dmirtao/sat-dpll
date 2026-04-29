@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 from cnf_io import parse_dimacs_cnf
 from collections import deque
@@ -217,8 +218,8 @@ def analyze_conflict(
             if dl == current_level:
                 seen.add(var)
             else:
-                # Negate the literal for the learned clause
-                learned_vars.add(-lit)
+                # Store the variable; _assignment_negation will handle the literal logic
+                learned_vars.add(var)
 
     _add_clause_lits(conflict_clause)
     
@@ -520,24 +521,25 @@ def cdcl(
 
 if __name__ == "__main__":
     # Load in target file
-
-    print("Parsing dimacs")
-    clauses, num_vars, num_cls = parse_dimacs_cnf(
-        Path("benchmarks/uf20-91/uf20-010.cnf")
-    )
-    print("making assignments")
-    assignments = init_assignment_array(num_vars)
-    print("starting cdcl")
-    sat, final_assignments = cdcl(clauses, assignments)
-    if sat:
-        print("SAT")
-        assignment_str = " ".join(
-            str(i + 1) if v == TRUE else str(-(i + 1))
-            for i, v in enumerate(final_assignments)
-        )
-        print(assignment_str)
-    else:
-        print("UNSAT")
-    # Retrieve the list of unit clauses in the current clause list
-    #dpll(clauses, assignments)
+    for root, dirs, files in os.walk(Path("benchmarks/uf20-91/")):
+        for name in files:
+            print("Parsing dimacs")
+            clauses, num_vars, num_cls = parse_dimacs_cnf(
+                os.path.join(root, name)
+            )
+            print("making assignments")
+            assignments = init_assignment_array(num_vars)
+            print("starting cdcl")
+            sat, final_assignments = cdcl(clauses, assignments)
+            if sat:
+                print("SAT")
+                assignment_str = " ".join(
+                    str(i + 1) if v == TRUE else str(-(i + 1))
+                    for i, v in enumerate(final_assignments)
+                )
+                print(assignment_str)
+            else:
+                print("UNSAT")
+            # Retrieve the list of unit clauses in the current clause list
+            #dpll(clauses, assignments)
     print("Done")
