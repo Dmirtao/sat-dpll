@@ -207,10 +207,13 @@ def analyze_conflict(
     seen: set[int] = set()
     learned_vars: set[int] = set()
 
-    def _add_clause_lits(clause: tuple) -> None:
+    def _add_clause_lits(clause: tuple, ignore_var: int = -1) -> None:
         #Resolve a clause into seen (current-level vars) and learned_lits (others)
         for lit in clause:
             var = abs(lit) - 1
+            # Skip the variable we are actively resolving out
+            if var == ignore_var:
+                continue
             #skip unassigned literals since theyre not a part of why the conflict is happening
             if assignments[var] == UNASSIGNED:
                 continue
@@ -237,7 +240,8 @@ def analyze_conflict(
             # This was a decision literal; keep its negation in the learned clause
             learned_vars.add(var)
         else:
-            _add_clause_lits(antecedent)
+            # Pass the variable to ignore so it doesn't get added back to seen
+            _add_clause_lits(antecedent, ignore_var=var)
 
     # The single remaining seen variable is the 1-UIP; add its negation
     if seen:
@@ -520,6 +524,8 @@ def cdcl(
 
 
 if __name__ == "__main__":
+    was_sat = []
+    was_unsat = []
     # Load in target file
     for root, dirs, files in os.walk(Path("benchmarks/uf20-91/")):
         for name in files:
@@ -533,6 +539,7 @@ if __name__ == "__main__":
             sat, final_assignments = cdcl(clauses, assignments)
             if sat:
                 print("SAT")
+                was_sat.append(name)
                 assignment_str = " ".join(
                     str(i + 1) if v == TRUE else str(-(i + 1))
                     for i, v in enumerate(final_assignments)
@@ -540,6 +547,9 @@ if __name__ == "__main__":
                 print(assignment_str)
             else:
                 print("UNSAT")
+                was_unsat.append(name)
             # Retrieve the list of unit clauses in the current clause list
             #dpll(clauses, assignments)
+    print(len(was_sat))
+    print(len(was_unsat))
     print("Done")
