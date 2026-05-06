@@ -2,24 +2,22 @@ from pathlib import Path
 
 
 def parse_dimacs_cnf(filename: Path) -> tuple[list[tuple], int, int]:
-    """_summary_
+    """Parses an input DIMACS CNF file.
 
     Parameters
     ----------
     filename : Path
-        _description_
+        Input filepath of .cnf to parse.
 
     Returns
     -------
     tuple[list[tuple], int, int]
-        _description_
+        Tuple of clauses, num_vars, num_clauses
 
     Raises
     ------
     ValueError
-        _description_
-    ValueError
-        _description_
+        Raised if file input is not in DIMACS form.
     """
     clauses: list = []
     with open(filename, "r") as f:

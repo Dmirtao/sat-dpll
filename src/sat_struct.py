@@ -163,15 +163,3 @@ class ImplicationGraph:
         self.level_start = self.level_start[: target_level + 1]
         self.current_level = target_level
 
-# def is_lit_satisfied(lit, assigns):
-#     var = lit >> 1
-#     is_negated = lit & 1
-#     val = assigns[var]
-
-#     if val == UNASSIGNED:
-#         return False
-
-#     # If parity is 0 (pos), we need TRUE (1)
-#     # If parity is 1 (neg), we need FALSE (2)
-#     target = 2 if is_negated else 1
-#     return val == target
