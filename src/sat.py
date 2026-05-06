@@ -302,15 +302,13 @@ def cdcl(
         assignments holds the final (satisfying) variable assignment when SAT,
         or an indeterminate state when UNSAT.
     """
-    print("starting CDCL")
     graph = ImplicationGraph()
     learned_clause_set: set[frozenset] = set()
-    print("done with graph")
     # Phase 0: BCP at decision level 0 (root-level unit propagation)
     conflict, conflict_clause = bcp(clauses, assignments, graph, seed_lits=None)
     if conflict:
         return False, assignments  # UNSAT: conflict at root level
-    print("first loop")
+
     while True:
         # Check if all variables have been assigned
         var_idx = pick_unassigned_var(assignments)
@@ -374,5 +372,4 @@ def cdcl(
                     clauses, assignments, graph, seed_lits=None
                 )
         conflict = False
-
 
