@@ -1,5 +1,4 @@
 from cnf_io import parse_dimacs_cnf
-from constants import TRUE
 from sat_struct import init_assignment_array
 from sat import cdcl
 import os
