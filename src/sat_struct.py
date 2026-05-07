@@ -22,32 +22,6 @@ def init_assignment_array(num_vars: int) -> bytearray:
     """
     return bytearray([UNASSIGNED] * num_vars)
 
-# def set_assignment_arr(assignment:bytearray, ) -> bytearray:
-
-def get_assignment_bitmasks(assignment: bytearray) -> tuple[int, int, int]:
-    """Returns a tuple of int
-    This operation can be expensive so only call when really necessary.
-
-    Parameters
-    ----------
-    assignment : bytearray
-        _description_
-
-    Returns
-    -------
-    tuple[int,int,int]
-        _description_
-    """
-    true_mask = 0
-    false_mask = 0
-
-    for i, val in enumerate(assignment):
-        if val == TRUE:
-            true_mask |= (1 << i)
-        elif val == FALSE:
-            false_mask |= (1 << i)
-    full_mask = (1 << len(assignment)) - 1
-    return (true_mask, false_mask, full_mask)
 
 def get_clause_bitmasks(clause: tuple[int]) -> tuple[int, int]:
     """In these bitmasks, for the positive mask a bit is 1 if the variable appears

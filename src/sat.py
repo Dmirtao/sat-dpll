@@ -89,7 +89,7 @@ def bcp_watched(
         old_watches = watchers[falsified_lit][:]
         watchers[falsified_lit].clear()
 
-        for c_idx in old_watches:
+        for j, c_idx in enumerate(old_watches):
             clause = clauses[c_idx]
             w1, w2 = watched_lits[c_idx]
 
@@ -132,6 +132,9 @@ def bcp_watched(
                     graph.imply(w1, clause)
                     queue.append(w1)
                 elif (w1 > 0 and w1_val == FALSE) or (w1 < 0 and w1_val == TRUE):
+                    # Restore the remaining unprocessed watchers before returning
+                    for remaining_c_idx in old_watches[j + 1:]:
+                        watchers[falsified_lit].append(remaining_c_idx)
                     return True, clause
 
     return False, None
@@ -379,16 +382,17 @@ def analyze_conflict(
     if seen:
         learned_vars.add(next(iter(seen)))
 
-    learned_clause = tuple(
-        _assignment_negation(var, assignments) for var in learned_vars
+    sorted_vars = sorted(
+            list(learned_vars),
+            key=lambda v: graph.decision_level.get(v, 0),
+            reverse=True,
     )
 
-    # Compute backjump level: second-highest decision level among learned_lits
-    levels = sorted(
-        {graph.decision_level.get(var, 0) for var in learned_vars},
-        reverse=True,
+    learned_clause = tuple(
+        _assignment_negation(var, assignments) for var in sorted_vars
     )
-    backjump_level = levels[1] if len(levels) > 1 else 0
+
+    backjump_level = graph.decision_level.get(sorted_vars[1], 0) if len(sorted_vars) > 1 else 0
 
     return learned_clause, backjump_level
 
@@ -493,7 +497,7 @@ def cdcl(
                 )  # Track that the literal was flipped
 
             if use_wl:
-                bcp_watched(
+                conflict, conflict_clause = bcp_watched(
                     clauses,
                     assignments,
                     graph,
