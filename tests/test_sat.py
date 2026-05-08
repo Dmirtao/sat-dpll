@@ -4,6 +4,31 @@ from sat import cdcl
 import os
 from pathlib import Path
 import cProfile
+import pstats
+import pytest
+
+@pytest.fixture(autouse=True)
+def profile_test(request):
+    """Automatically profiles every test, filtering out built-ins."""
+    profiler = cProfile.Profile()
+    profiler.enable()
+    
+    yield 
+    
+    profiler.disable()
+    txt_file = f"{request.node.name}_stats.txt"
+    with open(txt_file, "w") as f:
+        # Pass the file handle as the stream
+        stats = pstats.Stats(profiler, stream=f)
+        stats.sort_stats(pstats.SortKey.CUMULATIVE)
+        f.write(f"--- Profile for {request.node.name} ---\n")
+        
+        # Still filter to only show your src/ directory
+        stats.print_stats("sat-dpll.src")
+        
+    # 2. Dump the binary stats for Snakeviz
+    prof_file = f"{request.node.name}.prof"
+    stats.dump_stats(prof_file)
 
 def run_benchmark_folder(
     benchmark_path: Path, subset: int = 0, use_cdl=True, use_wl=False
@@ -28,7 +53,7 @@ def run_benchmark_folder(
     return (len(was_sat), len(was_unsat))
 
 
-def test_uf20_91():
+def test_uf20_91(capsys):
     (was_sat, was_unsat) = run_benchmark_folder(
         Path("benchmarks/uf20-91/"), use_wl=True
     )
@@ -37,7 +62,7 @@ def test_uf20_91():
 
 
 def test_uf100_430():
-    subset_count = 10
+    subset_count = 100
     (was_sat, was_unsat) = run_benchmark_folder(
         Path("benchmarks/uf100-430/"), subset=subset_count, use_wl=True
     )
@@ -46,7 +71,7 @@ def test_uf100_430():
 
 
 def test_uuf100_430():
-    subset_count = 10
+    subset_count = 100
     (was_sat, was_unsat) = run_benchmark_folder(
         Path("benchmarks/uuf100-430/"), subset=subset_count, use_wl=True
     )
